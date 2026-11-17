@@ -39,9 +39,9 @@ onMounted(() => {
     const gap = 2
     const barWidth = Math.max(2, (width - gap * (bars - 1)) / bars)
     const gradient = context.createLinearGradient(0, height, 0, 0)
-    gradient.addColorStop(0, 'rgba(167, 139, 250, 0.22)')
-    gradient.addColorStop(0.6, 'rgba(167, 139, 250, 0.75)')
-    gradient.addColorStop(1, 'rgba(34, 211, 238, 0.95)')
+    gradient.addColorStop(0, 'rgba(30, 215, 96, 0.18)')
+    gradient.addColorStop(0.6, 'rgba(30, 215, 96, 0.7)')
+    gradient.addColorStop(1, 'rgba(31, 223, 100, 0.95)')
     context.fillStyle = gradient
 
     for (let i = 0; i < bars; i += 1) {
@@ -73,7 +73,7 @@ onBeforeUnmount(() => {
 .viz {
   height: 46px;
   padding: 0 20px;
-  background: linear-gradient(180deg, rgba(167, 139, 250, 0.04), transparent);
+  background: linear-gradient(180deg, rgba(30, 215, 96, 0.05), transparent);
   border-top: 1px solid var(--border);
 }
 

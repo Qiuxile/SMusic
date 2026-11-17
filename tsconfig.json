@@ -22,6 +22,8 @@
     "src/**/*.d.ts",
     "src/**/*.vue",
     "plugins/**/*.ts",
-    "vite.config.ts"
+    "tests/**/*.ts",
+    "vite.config.ts",
+    "vitest.config.ts"
   ]
 }

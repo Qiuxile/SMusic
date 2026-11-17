@@ -48,7 +48,7 @@ function playAll(): void {
       title="还没有播放记录"
       description="播放过的歌曲会按时间倒序出现在这里，记录仅保存在本机。"
     >
-      <RouterLink to="/" class="btn">去曲库逛逛</RouterLink>
+      <RouterLink to="/library" class="btn">去曲库逛逛</RouterLink>
     </EmptyState>
   </section>
 </template>

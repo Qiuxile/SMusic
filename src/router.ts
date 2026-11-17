@@ -5,6 +5,12 @@ const router = createRouter({
   routes: [
     {
       path: '/',
+      name: 'home',
+      component: () => import('./views/HomeView.vue'),
+      meta: { title: '首页' },
+    },
+    {
+      path: '/library',
       name: 'all',
       component: () => import('./views/AllTracksView.vue'),
       meta: { title: '全部歌曲' },
@@ -44,6 +50,18 @@ const router = createRouter({
       name: 'recent',
       component: () => import('./views/RecentView.vue'),
       meta: { title: '最近播放' },
+    },
+    {
+      path: '/playlists',
+      name: 'playlists',
+      component: () => import('./views/PlaylistsView.vue'),
+      meta: { title: '我的歌单' },
+    },
+    {
+      path: '/playlist/:id',
+      name: 'playlist',
+      component: () => import('./views/PlaylistDetailView.vue'),
+      meta: { title: '歌单' },
     },
     {
       path: '/search',

@@ -1,16 +1,10 @@
 <script setup lang="ts">
 import { useLibraryStore } from '../stores/library'
-import CoverArt from '../components/ui/CoverArt.vue'
+import ArtistCard from '../components/library/ArtistCard.vue'
 import EmptyState from '../components/ui/EmptyState.vue'
 import Icon from '../components/ui/Icon.vue'
 
 const library = useLibraryStore()
-
-function coverOf(name: string): { src?: string; hue?: number } {
-  const artist = library.artistByName(name)
-  const first = artist?.tracks.find((track) => track.cover) ?? artist?.tracks[0]
-  return { src: first?.cover, hue: first?.coverHue ?? artist?.hue }
-}
 </script>
 
 <template>
@@ -25,24 +19,11 @@ function coverOf(name: string): { src?: string; hue?: number } {
     </header>
 
     <div v-if="library.artists.length" class="artist-grid">
-      <RouterLink
+      <ArtistCard
         v-for="artist in library.artists"
         :key="artist.key"
-        :to="`/artist/${encodeURIComponent(artist.name)}`"
-        class="artist-card"
-      >
-        <CoverArt
-          :src="coverOf(artist.name).src"
-          :title="artist.name"
-          :hue="coverOf(artist.name).hue"
-          :size="76"
-          :radius="999"
-        />
-        <div class="info">
-          <div class="name">{{ artist.name }}</div>
-          <div class="meta">{{ artist.tracks.length }} 首 · {{ artist.albumCount }} 张专辑</div>
-        </div>
-      </RouterLink>
+        :artist="artist"
+      />
     </div>
 
     <EmptyState
@@ -58,39 +39,5 @@ function coverOf(name: string): { src?: string; hue?: number } {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
   gap: 10px;
-}
-
-.artist-card {
-  display: flex;
-  align-items: center;
-  gap: 14px;
-  padding: 12px 14px;
-  border-radius: 14px;
-  border: 1px solid var(--border);
-  background: var(--surface);
-  transition: background-color 0.16s ease, border-color 0.16s ease;
-}
-
-.artist-card:hover {
-  background: var(--surface-2);
-  border-color: var(--border-strong);
-}
-
-.info {
-  min-width: 0;
-}
-
-.name {
-  font-size: 14px;
-  font-weight: 600;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.meta {
-  margin-top: 3px;
-  font-size: 11.5px;
-  color: var(--muted);
 }
 </style>

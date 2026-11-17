@@ -1,6 +1,9 @@
 import { computed, ref, shallowRef, watch } from 'vue'
 import { defineStore } from 'pinia'
 import type { Track } from '../types'
+import { buildShuffleOrder, stepShuffle } from '../audio/queue'
+import { settleStatus, transition } from '../audio/state-machine'
+import type { PlaybackEvent, PlaybackStatus } from '../audio/state-machine'
 import { useLibraryStore } from './library'
 import { loadJSON, saveJSON } from '../utils/storage'
 
@@ -9,6 +12,8 @@ export type RepeatMode = 'off' | 'all' | 'one'
 interface PersistedPlayer {
   queue: string[]
   index: number
+  position: number
+  positionTrackId: string
   volume: number
   muted: boolean
   repeat: RepeatMode
@@ -28,6 +33,7 @@ export const usePlayerStore = defineStore('player', () => {
 
   /** 全局唯一的 <audio>，由 store 持有，跨路由不中断 */
   const audio = shallowRef<HTMLAudioElement | null>(null)
+  const status = ref<PlaybackStatus>('idle')
   const queue = ref<Track[]>([])
   const index = ref(-1)
   const playing = ref(false)
@@ -40,11 +46,18 @@ export const usePlayerStore = defineStore('player', () => {
   const repeat = ref<RepeatMode>(saved.repeat ?? 'all')
   const shuffle = ref(saved.shuffle === true)
   const error = ref('')
-  const showLyrics = ref(false)
-  const showQueue = ref(false)
+  const showNowPlaying = ref(false)
+  const nowPlayingTab = ref<'lyrics' | 'queue'>('lyrics')
   const showVisualizer = ref(saved.showVisualizer === true)
+  const shuffleOrder = ref<number[]>([])
 
   let hydrated = false
+  let pendingSeek: number | null = null
+  let restorePosition: number | null = null
+
+  function send(event: PlaybackEvent): void {
+    status.value = transition(status.value, event)
+  }
 
   const current = computed<Track | null>(() =>
     index.value >= 0 ? queue.value[index.value] ?? null : null,
@@ -73,6 +86,13 @@ export const usePlayerStore = defineStore('player', () => {
     })
     element.addEventListener('loadedmetadata', () => {
       if (Number.isFinite(element.duration)) duration.value = element.duration
+      if (pendingSeek !== null && Number.isFinite(element.duration) && element.duration > 0) {
+        const target = clamp(pendingSeek, 0, element.duration)
+        element.currentTime = target
+        currentTime.value = target
+        pendingSeek = null
+      }
+      send('loaded')
     })
     element.addEventListener('progress', () => {
       const ranges = element.buffered
@@ -82,17 +102,33 @@ export const usePlayerStore = defineStore('player', () => {
       playing.value = true
       loading.value = false
       error.value = ''
+      status.value = 'playing'
     })
     element.addEventListener('pause', () => {
       playing.value = false
+      if (status.value !== 'idle' && status.value !== 'ended') status.value = 'paused'
+      persist()
     })
     element.addEventListener('waiting', () => {
       loading.value = true
+      if (playing.value) status.value = 'buffering'
     })
     element.addEventListener('canplay', () => {
       loading.value = false
+      if (status.value === 'loading' || status.value === 'buffering') {
+        status.value = settleStatus(playing.value)
+      }
+    })
+    element.addEventListener('seeking', () => {
+      status.value = 'seeking'
+    })
+    element.addEventListener('seeked', () => {
+      status.value = settleStatus(playing.value)
+      persist()
     })
     element.addEventListener('ended', () => {
+      status.value = 'ended'
+      persist()
       next(true)
     })
     element.addEventListener('error', () => {
@@ -100,6 +136,7 @@ export const usePlayerStore = defineStore('player', () => {
       if (!element.src || element.error?.code === MediaError.MEDIA_ERR_ABORTED) return
       loading.value = false
       playing.value = false
+      status.value = 'error'
       error.value = '音频加载失败，请确认文件仍在 music/ 目录中'
     })
 
@@ -114,20 +151,29 @@ export const usePlayerStore = defineStore('player', () => {
       element.load()
     }
     loading.value = true
+    status.value = 'loading'
     try {
       await element.play()
       playing.value = true
       loading.value = false
+      status.value = 'playing'
     } catch (unknownError) {
       const errorInfo = unknownError as DOMException
       loading.value = false
       playing.value = false
       if (errorInfo?.name === 'AbortError') return
+      status.value = errorInfo?.name === 'NotAllowedError' ? 'paused' : 'error'
       error.value =
         errorInfo?.name === 'NotAllowedError'
           ? '浏览器阻止了自动播放，请点击播放按钮'
           : '播放失败，请稍后重试'
     }
+  }
+
+  function pause(): void {
+    audio.value?.pause()
+    playing.value = false
+    if (status.value !== 'idle') status.value = 'paused'
   }
 
   function load(track: Track, autoplay: boolean): void {
@@ -136,20 +182,27 @@ export const usePlayerStore = defineStore('player', () => {
     currentTime.value = 0
     buffered.value = 0
     duration.value = track.duration || 0
+    status.value = 'loading'
+    loading.value = true
+    pendingSeek = restorePosition
+    restorePosition = null
     element.src = track.url
     element.load()
     if (autoplay) void start()
   }
 
   function playTrack(track: Track, list?: Track[]): void {
+    // 先记录正在播放的曲目：下面可能整体替换队列，index 相同不代表还是同一首歌
+    const playingId = current.value?.id ?? null
     if (list?.length) queue.value = [...list]
     let position = queue.value.findIndex((item) => item.id === track.id)
     if (position === -1) {
       queue.value = [...queue.value, track]
       position = queue.value.length - 1
     }
-    const isSame = index.value === position && Boolean(audio.value?.getAttribute('src'))
+    const isSame = playingId === track.id && Boolean(audio.value?.getAttribute('src'))
     index.value = position
+    shuffleOrder.value = []
     library.pushRecent(track.id)
     if (isSame) {
       seek(0)
@@ -163,6 +216,7 @@ export const usePlayerStore = defineStore('player', () => {
     const track = queue.value[position]
     if (!track) return
     index.value = position
+    shuffleOrder.value = []
     library.pushRecent(track.id)
     load(track, true)
   }
@@ -174,8 +228,7 @@ export const usePlayerStore = defineStore('player', () => {
       return
     }
     if (playing.value) {
-      audio.value?.pause()
-      playing.value = false
+      pause()
       return
     }
     void start()
@@ -189,11 +242,19 @@ export const usePlayerStore = defineStore('player', () => {
       return
     }
     if (shuffle.value && queue.value.length > 1) {
-      let position = index.value
-      while (position === index.value) {
-        position = Math.floor(Math.random() * queue.value.length)
+      if (shuffleOrder.value.length !== queue.value.length) {
+        shuffleOrder.value = buildShuffleOrder(queue.value.length, index.value)
       }
-      index.value = position
+      const cursor = shuffleOrder.value.indexOf(index.value)
+      if (cursor === shuffleOrder.value.length - 1 && auto && repeat.value === 'off') {
+        playing.value = false
+        currentTime.value = duration.value
+        status.value = 'ended'
+        return
+      }
+      const step = stepShuffle(shuffleOrder.value, queue.value.length, index.value, 1)
+      shuffleOrder.value = step.order
+      index.value = step.position
     } else if (index.value < queue.value.length - 1) {
       index.value += 1
     } else if (repeat.value === 'all' || !auto) {
@@ -216,7 +277,20 @@ export const usePlayerStore = defineStore('player', () => {
       seek(0)
       return
     }
-    if (index.value > 0) {
+    if (shuffle.value && queue.value.length > 1) {
+      const order =
+        shuffleOrder.value.length === queue.value.length
+          ? shuffleOrder.value
+          : buildShuffleOrder(queue.value.length, index.value)
+      const cursor = order.indexOf(index.value)
+      if (cursor === 0 && repeat.value !== 'all') {
+        seek(0)
+        return
+      }
+      const step = stepShuffle(order, queue.value.length, index.value, -1)
+      shuffleOrder.value = step.order
+      index.value = step.position
+    } else if (index.value > 0) {
       index.value -= 1
     } else if (repeat.value === 'all') {
       index.value = queue.value.length - 1
@@ -236,6 +310,7 @@ export const usePlayerStore = defineStore('player', () => {
     const total = duration.value || element?.duration || 0
     if (!element || !Number.isFinite(total) || total <= 0) return
     const target = clamp(seconds, 0, total)
+    status.value = 'seeking'
     element.currentTime = target
     currentTime.value = target
   }
@@ -259,21 +334,43 @@ export const usePlayerStore = defineStore('player', () => {
   }
 
   function addToQueue(track: Track, playNext = false): void {
-    if (!queue.value.some((item) => item.id === track.id)) {
-      if (playNext && index.value >= 0) {
-        queue.value = [
-          ...queue.value.slice(0, index.value + 1),
-          track,
-          ...queue.value.slice(index.value + 1),
-        ]
-      } else {
-        queue.value = [...queue.value, track]
-      }
+    enqueueTracks([track], playNext)
+  }
+
+  /** 批量入队时保持传入顺序，并跳过队列中已有的曲目。 */
+  function enqueueTracks(tracks: readonly Track[], playNext = false): number {
+    const existing = new Set(queue.value.map((item) => item.id))
+    const additions = tracks.filter((track) => {
+      if (existing.has(track.id)) return false
+      existing.add(track.id)
+      return true
+    })
+    if (!additions.length) return 0
+
+    if (playNext && index.value >= 0) {
+      queue.value = [
+        ...queue.value.slice(0, index.value + 1),
+        ...additions,
+        ...queue.value.slice(index.value + 1),
+      ]
+    } else {
+      queue.value = [...queue.value, ...additions]
     }
+    shuffleOrder.value = []
+
     if (index.value === -1) {
       index.value = 0
       load(queue.value[0], false)
     }
+    return additions.length
+  }
+
+  function playShuffled(tracks: readonly Track[]): void {
+    if (!tracks.length) return
+    shuffle.value = true
+    const start = tracks[Math.floor(Math.random() * tracks.length)]
+    playTrack(start, [...tracks])
+    shuffleOrder.value = buildShuffleOrder(queue.value.length, index.value)
   }
 
   function removeFromQueue(id: string): void {
@@ -281,11 +378,14 @@ export const usePlayerStore = defineStore('player', () => {
     if (position === -1) return
     const removingCurrent = position === index.value
     queue.value = queue.value.filter((item) => item.id !== id)
+    shuffleOrder.value = []
     if (!queue.value.length) {
       index.value = -1
       audio.value?.pause()
       audio.value?.removeAttribute('src')
       playing.value = false
+      loading.value = false
+      status.value = 'idle'
       currentTime.value = 0
       duration.value = 0
       return
@@ -301,9 +401,12 @@ export const usePlayerStore = defineStore('player', () => {
   function clearQueue(): void {
     queue.value = []
     index.value = -1
+    shuffleOrder.value = []
     audio.value?.pause()
     audio.value?.removeAttribute('src')
     playing.value = false
+    loading.value = false
+    status.value = 'idle'
     currentTime.value = 0
     duration.value = 0
   }
@@ -314,6 +417,21 @@ export const usePlayerStore = defineStore('player', () => {
 
   function toggleShuffle(): void {
     shuffle.value = !shuffle.value
+    shuffleOrder.value = shuffle.value ? buildShuffleOrder(queue.value.length, index.value) : []
+  }
+
+  function openNowPlaying(tab: 'lyrics' | 'queue' = 'lyrics'): void {
+    nowPlayingTab.value = tab
+    showNowPlaying.value = true
+  }
+
+  function closeNowPlaying(): void {
+    showNowPlaying.value = false
+  }
+
+  function toggleNowPlaying(tab: 'lyrics' | 'queue'): void {
+    if (showNowPlaying.value && nowPlayingTab.value === tab) closeNowPlaying()
+    else openNowPlaying(tab)
   }
 
   /** 恢复上次队列、音量与播放模式（不自动播放） */
@@ -330,7 +448,13 @@ export const usePlayerStore = defineStore('player', () => {
       queue.value = [...library.tracks]
       index.value = 0
     }
-    if (current.value) load(current.value, false)
+    if (current.value) {
+      restorePosition =
+        saved.positionTrackId === current.value.id && typeof saved.position === 'number'
+          ? saved.position
+          : null
+      load(current.value, false)
+    }
     if (audio.value) {
       audio.value.volume = volume.value
       audio.value.muted = muted.value
@@ -341,6 +465,8 @@ export const usePlayerStore = defineStore('player', () => {
     saveJSON<PersistedPlayer>(STORAGE_KEY, {
       queue: queue.value.map((track) => track.id),
       index: index.value,
+      position: currentTime.value,
+      positionTrackId: current.value?.id ?? '',
       volume: volume.value,
       muted: muted.value,
       repeat: repeat.value,
@@ -351,8 +477,23 @@ export const usePlayerStore = defineStore('player', () => {
 
   watch([queue, index, volume, muted, repeat, shuffle, showVisualizer], persist, { deep: true })
 
+  let lastPositionPersist = 0
+  watch(currentTime, () => {
+    const now = Date.now()
+    if (now - lastPositionPersist < 5000) return
+    lastPositionPersist = now
+    persist()
+  })
+
+  if (typeof document !== 'undefined') {
+    document.addEventListener('visibilitychange', () => {
+      if (document.visibilityState === 'hidden') persist()
+    })
+  }
+
   return {
     audio,
+    status,
     queue,
     index,
     playing,
@@ -366,8 +507,8 @@ export const usePlayerStore = defineStore('player', () => {
     repeat,
     shuffle,
     error,
-    showLyrics,
-    showQueue,
+    showNowPlaying,
+    nowPlayingTab,
     showVisualizer,
     current,
     progress,
@@ -376,6 +517,8 @@ export const usePlayerStore = defineStore('player', () => {
     playTrack,
     playAt,
     toggle,
+    start,
+    pause,
     next,
     prev,
     seek,
@@ -383,9 +526,14 @@ export const usePlayerStore = defineStore('player', () => {
     setVolume,
     toggleMute,
     addToQueue,
+    enqueueTracks,
+    playShuffled,
     removeFromQueue,
     clearQueue,
     cycleRepeat,
     toggleShuffle,
+    openNowPlaying,
+    closeNowPlaying,
+    toggleNowPlaying,
   }
 })

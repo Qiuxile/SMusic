@@ -57,7 +57,7 @@ export function useShortcuts(): void {
         break
       case 'l':
       case 'L':
-        player.showLyrics = !player.showLyrics
+        player.toggleNowPlaying('lyrics')
         break
       case 'v':
       case 'V':
@@ -65,15 +65,14 @@ export function useShortcuts(): void {
         break
       case 'q':
       case 'Q':
-        player.showQueue = !player.showQueue
+        player.toggleNowPlaying('queue')
         break
       case '/':
         event.preventDefault()
         document.querySelector<HTMLInputElement>('#global-search')?.focus()
         break
       case 'Escape':
-        player.showLyrics = false
-        player.showQueue = false
+        player.closeNowPlaying()
         break
       default:
         break

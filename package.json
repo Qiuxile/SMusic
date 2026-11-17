@@ -9,6 +9,8 @@
     "build:only": "vite build",
     "preview": "vite preview",
     "typecheck": "vue-tsc --noEmit",
+    "test": "vitest run",
+    "test:watch": "vitest",
     "inspect:audio": "node scripts/inspect-audio.mjs",
     "deploy": "npm run build && wrangler pages deploy dist --project-name smusic"
   },
@@ -23,6 +25,7 @@
     "music-metadata": "^12.5.0",
     "typescript": "~5.9.3",
     "vite": "^4.5.14",
+    "vitest": "^2.1.9",
     "vue-tsc": "^3.3.14",
     "wrangler": "^4.0.0"
   }

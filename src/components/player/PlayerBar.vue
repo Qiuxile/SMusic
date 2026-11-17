@@ -3,10 +3,10 @@ import { computed, ref, watch } from 'vue'
 import { usePlayerStore } from '../../stores/player'
 import { useLibraryStore } from '../../stores/library'
 import { formatTime } from '../../utils/format'
+import { downloadTrack } from '../../utils/download'
 import Icon from '../ui/Icon.vue'
 import CoverArt from '../ui/CoverArt.vue'
-import LyricsPanel from './LyricsPanel.vue'
-import QueueDrawer from './QueueDrawer.vue'
+import NowPlayingView from './NowPlayingView.vue'
 import Visualizer from './Visualizer.vue'
 
 const player = usePlayerStore()
@@ -58,8 +58,7 @@ function onVolumeInput(event: Event): void {
 
 <template>
   <div class="player-wrap">
-    <LyricsPanel v-if="player.showLyrics" />
-    <QueueDrawer v-if="player.showQueue" />
+    <NowPlayingView v-if="player.showNowPlaying" />
     <Visualizer v-if="player.showVisualizer" />
 
     <div class="bar">
@@ -85,6 +84,15 @@ function onVolumeInput(event: Event): void {
           @click="player.current && library.toggleFavorite(player.current.id)"
         >
           <Icon name="heart" :size="16" :filled="isFavorite" />
+        </button>
+        <button
+          class="icon-btn mobile-only"
+          :disabled="!player.current"
+          title="歌词"
+          aria-label="打开歌词"
+          @click="player.openNowPlaying('lyrics')"
+        >
+          <Icon name="mic" :size="16" />
         </button>
       </div>
 
@@ -147,6 +155,15 @@ function onVolumeInput(event: Event): void {
       <div class="right">
         <button
           class="icon-btn"
+          :disabled="!player.current"
+          title="下载当前歌曲"
+          aria-label="下载当前歌曲"
+          @click="player.current && downloadTrack(player.current)"
+        >
+          <Icon name="download" :size="17" />
+        </button>
+        <button
+          class="icon-btn"
           :class="{ active: player.showVisualizer }"
           title="音频可视化（V）"
           @click="player.showVisualizer = !player.showVisualizer"
@@ -155,17 +172,28 @@ function onVolumeInput(event: Event): void {
         </button>
         <button
           class="icon-btn"
-          :class="{ active: player.showLyrics }"
+          :disabled="!player.current"
+          title="展开播放页"
+          aria-label="展开播放页"
+          @click="player.openNowPlaying('lyrics')"
+        >
+          <Icon name="expand" :size="17" />
+        </button>
+        <button
+          class="icon-btn"
+          :class="{ active: player.showNowPlaying && player.nowPlayingTab === 'lyrics' }"
           title="歌词（L）"
-          @click="player.showLyrics = !player.showLyrics"
+          aria-label="歌词"
+          @click="player.toggleNowPlaying('lyrics')"
         >
           <Icon name="mic" :size="17" />
         </button>
         <button
           class="icon-btn"
-          :class="{ active: player.showQueue }"
+          :class="{ active: player.showNowPlaying && player.nowPlayingTab === 'queue' }"
           title="播放队列（Q）"
-          @click="player.showQueue = !player.showQueue"
+          aria-label="播放队列"
+          @click="player.toggleNowPlaying('queue')"
         >
           <Icon name="list" :size="17" />
         </button>
@@ -198,7 +226,7 @@ function onVolumeInput(event: Event): void {
 .player-wrap {
   position: relative;
   grid-column: 1 / -1;
-  background: rgba(10, 11, 15, 0.94);
+  background: rgba(18, 18, 18, 0.94);
   border-top: 1px solid var(--border);
   backdrop-filter: blur(18px);
   z-index: 30;
@@ -220,6 +248,7 @@ function onVolumeInput(event: Event): void {
 }
 
 .now-text {
+  flex: 1 1 auto;
   min-width: 0;
 }
 
@@ -252,6 +281,10 @@ function onVolumeInput(event: Event): void {
   cursor: default;
 }
 
+.mobile-only {
+  display: none;
+}
+
 .center {
   display: flex;
   flex-direction: column;
@@ -273,9 +306,9 @@ function onVolumeInput(event: Event): void {
   display: grid;
   place-items: center;
   border-radius: 50%;
-  color: #160c2b;
-  background: linear-gradient(135deg, #c4b5fd, var(--accent));
-  box-shadow: 0 8px 24px rgba(124, 92, 240, 0.3);
+  color: var(--accent-contrast);
+  background: var(--accent);
+  box-shadow: var(--shadow-accent);
   transition: transform 0.14s ease, filter 0.14s ease;
 }
 
@@ -309,7 +342,7 @@ function onVolumeInput(event: Event): void {
   height: 11px;
   border-radius: 50%;
   background: var(--accent);
-  color: #150c26;
+  color: var(--accent-contrast);
   font-size: 8px;
   line-height: 11px;
   text-align: center;
@@ -359,6 +392,11 @@ function onVolumeInput(event: Event): void {
   align-items: center;
   justify-content: flex-end;
   gap: 2px;
+}
+
+.right .icon-btn:disabled {
+  opacity: 0.35;
+  cursor: default;
 }
 
 .volume {
@@ -441,6 +479,12 @@ function onVolumeInput(event: Event): void {
 
   .fav {
     display: none;
+  }
+
+  .mobile-only {
+    display: inline-flex;
+    width: 30px;
+    height: 30px;
   }
 }
 </style>

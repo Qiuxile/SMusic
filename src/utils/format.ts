@@ -10,11 +10,11 @@ export function formatTime(seconds: number): string {
 /** 秒 → 「1 小时 12 分钟」 */
 export function formatDurationLong(seconds: number): string {
   if (!Number.isFinite(seconds) || seconds <= 0) return '0 分钟'
-  const total = Math.round(seconds)
-  const hours = Math.floor(total / 3600)
-  const minutes = Math.round((total % 3600) / 60)
-  if (hours > 0) return `${hours} 小时 ${minutes} 分钟`
-  return `${Math.max(1, minutes)} 分钟`
+  const totalMinutes = Math.max(1, Math.round(seconds / 60))
+  const hours = Math.floor(totalMinutes / 60)
+  const minutes = totalMinutes % 60
+  if (hours === 0) return `${minutes} 分钟`
+  return minutes > 0 ? `${hours} 小时 ${minutes} 分钟` : `${hours} 小时`
 }
 
 export function formatSize(bytes: number): string {

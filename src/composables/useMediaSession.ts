@@ -53,8 +53,12 @@ export function useMediaSession(): void {
   )
 
   const handlers: Array<[MediaSessionAction, MediaSessionActionHandler | null]> = [
-    ['play', () => player.toggle()],
-    ['pause', () => player.toggle()],
+    ['play', () => {
+      if (!player.playing) void player.start()
+    }],
+    ['pause', () => {
+      if (player.playing) player.pause()
+    }],
     ['previoustrack', () => player.prev()],
     ['nexttrack', () => player.next()],
     ['seekbackward', (details) => player.skip(-(details.seekOffset ?? 10))],

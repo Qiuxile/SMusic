@@ -2,19 +2,28 @@
 import { computed } from 'vue'
 import { useRoute } from 'vue-router'
 import { useLibraryStore } from '../../stores/library'
+import { usePlaylistsStore } from '../../stores/playlists'
 import { formatDurationLong } from '../../utils/format'
 import Icon from '../ui/Icon.vue'
 
 const library = useLibraryStore()
+const playlists = usePlaylistsStore()
 const route = useRoute()
 
 const items = computed(() => [
   {
     to: '/',
+    label: '首页',
+    icon: 'home',
+    count: null as number | null,
+    match: (path: string) => path === '/',
+  },
+  {
+    to: '/library',
     label: '全部歌曲',
     icon: 'music',
     count: library.tracks.length,
-    match: (path: string) => path === '/',
+    match: (path: string) => path === '/library',
   },
   {
     to: '/albums',
@@ -29,6 +38,13 @@ const items = computed(() => [
     icon: 'users',
     count: library.artists.length,
     match: (path: string) => path.startsWith('/artist'),
+  },
+  {
+    to: '/playlists',
+    label: '我的歌单',
+    icon: 'playlist',
+    count: playlists.playlists.length,
+    match: (path: string) => path.startsWith('/playlist'),
   },
   {
     to: '/favorites',
@@ -67,7 +83,7 @@ const items = computed(() => [
       >
         <Icon :name="item.icon" :size="18" />
         <span class="label">{{ item.label }}</span>
-        <span class="count">{{ item.count }}</span>
+        <span v-if="item.count !== null" class="count">{{ item.count }}</span>
       </RouterLink>
     </nav>
 
@@ -96,7 +112,7 @@ const items = computed(() => [
   padding: 22px 14px 18px;
   height: 100%;
   min-height: 0;
-  background: linear-gradient(180deg, rgba(20, 22, 31, 0.92), rgba(10, 11, 15, 0.96));
+  background: var(--bg-deep);
   border-right: 1px solid var(--border);
   overflow-y: auto;
 }
@@ -114,9 +130,9 @@ const items = computed(() => [
   display: grid;
   place-items: center;
   border-radius: 12px;
-  color: #150c26;
-  background: linear-gradient(135deg, var(--accent), var(--accent-2));
-  box-shadow: 0 8px 24px rgba(124, 92, 240, 0.35);
+  color: var(--accent-contrast);
+  background: var(--accent);
+  box-shadow: var(--shadow-accent);
 }
 
 .brand-text {

@@ -43,7 +43,7 @@ function playAll(): void {
       title="收藏列表还是空的"
       description="在歌曲右侧点一下爱心，收藏会保存在这台设备的浏览器里，不需要登录。"
     >
-      <RouterLink to="/" class="btn">去曲库逛逛</RouterLink>
+      <RouterLink to="/library" class="btn">去曲库逛逛</RouterLink>
     </EmptyState>
   </section>
 </template>

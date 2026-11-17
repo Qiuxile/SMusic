@@ -18,7 +18,7 @@ useShortcuts()
 useMediaSession()
 
 watch(
-  () => route.fullPath,
+  () => route.path,
   () => {
     scroller.value?.scrollTo({ top: 0 })
   },
@@ -51,8 +51,7 @@ watch(
   grid-template-rows: minmax(0, 1fr) auto;
   height: 100dvh;
   background:
-    radial-gradient(900px 480px at 12% -8%, rgba(124, 92, 240, 0.16), transparent 62%),
-    radial-gradient(700px 420px at 92% 0%, rgba(34, 211, 238, 0.07), transparent 60%),
+    radial-gradient(800px 420px at 14% -10%, rgba(30, 215, 96, 0.07), transparent 60%),
     var(--bg);
 }
 
