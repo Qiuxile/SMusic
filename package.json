@@ -1,0 +1,29 @@
+{
+  "name": "music-player",
+  "private": true,
+  "version": "1.0.0",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "vue-tsc --noEmit && vite build",
+    "build:only": "vite build",
+    "preview": "vite preview",
+    "typecheck": "vue-tsc --noEmit",
+    "inspect:audio": "node scripts/inspect-audio.mjs",
+    "deploy": "npm run build && wrangler pages deploy dist --project-name music-player"
+  },
+  "dependencies": {
+    "pinia": "^2.1.4",
+    "vue": "^3.5.13",
+    "vue-router": "^4.6.5"
+  },
+  "devDependencies": {
+    "@types/node": "^26.6.6",
+    "@vitejs/plugin-vue": "^4.2.3",
+    "music-metadata": "^12.5.0",
+    "typescript": "~5.9.3",
+    "vite": "^4.5.14",
+    "vue-tsc": "^3.3.14",
+    "wrangler": "^4.0.0"
+  }
+}

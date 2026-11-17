@@ -1,0 +1,6 @@
+name = "music-player"
+pages_build_output_dir = "dist"
+compatibility_date = "2026-11-01"
+
+# 部署：npm run build && npx wrangler pages deploy dist
+# 也可以把仓库接到 Cloudflare Pages 控制台，构建命令 npm run build，输出目录 dist

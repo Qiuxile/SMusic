@@ -1,0 +1,31 @@
+# 依赖与构建产物
+node_modules
+dist
+dist-ssr
+
+# 构建期生成的封面缓存
+music-cache
+
+# 云端与本地环境
+.wrangler
+.dev.vars
+*.local
+
+# 日志
+logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# 编辑器
+.vscode/*
+!.vscode/extensions.json
+.idea
+.DS_Store
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
