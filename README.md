@@ -1,4 +1,4 @@
-# 本地音乐 · Local Music Player
+# SMusic · 本地音乐库
 
 一个部署在 Cloudflare Pages 上的纯静态本地音乐库：**曲目、专辑、歌手、封面、歌词全部来自 `music/` 目录里的音频文件标签**，不需要维护任何 JSON 清单。
 
@@ -80,7 +80,7 @@ Vue Router 视图 + 自研组件（CSS 变量主题，无 UI 框架）
 
 ```bash
 npm run build
-npx wrangler pages deploy dist --project-name music-player
+npx wrangler pages deploy dist --project-name smusic
 ```
 
 首次部署需要 `npx wrangler login`（或提供 `CLOUDFLARE_API_TOKEN` 环境变量，**不要把 token 写进仓库**）。

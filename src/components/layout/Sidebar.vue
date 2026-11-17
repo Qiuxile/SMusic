@@ -52,7 +52,7 @@ const items = computed(() => [
     <RouterLink to="/" class="brand">
       <span class="logo"><Icon name="music" :size="19" /></span>
       <span class="brand-text">
-        <strong>本地音乐</strong>
+        <strong>SMusic</strong>
         <small>LOCAL LIBRARY</small>
       </span>
     </RouterLink>

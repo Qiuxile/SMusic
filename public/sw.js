@@ -1,5 +1,5 @@
 /* 应用外壳缓存：只缓存界面与封面，音频走浏览器 HTTP 缓存（保留 Range 拖动能力） */
-const VERSION = 'music-player-v1'
+const VERSION = 'smusic-v1'
 const SHELL = ['/', '/index.html', '/favicon.svg', '/manifest.webmanifest']
 
 self.addEventListener('install', (event) => {

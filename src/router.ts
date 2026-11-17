@@ -57,8 +57,8 @@ const router = createRouter({
 })
 
 router.afterEach((to) => {
-  const title = (to.meta.title as string | undefined) ?? '本地音乐'
-  document.title = title === '本地音乐' ? title : `${title} · 本地音乐`
+  const title = (to.meta.title as string | undefined) ?? 'SMusic'
+  document.title = title === 'SMusic' ? title : `${title} · SMusic`
 })
 
 export default router

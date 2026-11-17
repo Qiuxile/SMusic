@@ -1,5 +1,5 @@
 {
-  "name": "music-player",
+  "name": "smusic",
   "private": true,
   "version": "1.0.0",
   "type": "module",
@@ -10,7 +10,7 @@
     "preview": "vite preview",
     "typecheck": "vue-tsc --noEmit",
     "inspect:audio": "node scripts/inspect-audio.mjs",
-    "deploy": "npm run build && wrangler pages deploy dist --project-name music-player"
+    "deploy": "npm run build && wrangler pages deploy dist --project-name smusic"
   },
   "dependencies": {
     "pinia": "^2.1.4",

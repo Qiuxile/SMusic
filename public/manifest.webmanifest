@@ -1,7 +1,7 @@
 {
-  "name": "本地音乐",
-  "short_name": "本地音乐",
-  "description": "读取音频标签的本地音乐库与播放器",
+  "name": "SMusic",
+  "short_name": "SMusic",
+  "description": "SMusic 本地音乐库：读取音频标签的播放器",
   "lang": "zh-CN",
   "start_url": "/",
   "scope": "/",

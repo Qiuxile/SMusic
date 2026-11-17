@@ -47,7 +47,7 @@ const mobileNav = [
   <header class="topbar">
     <RouterLink to="/" class="mobile-brand">
       <span class="logo"><Icon name="music" :size="16" /></span>
-      <strong>本地音乐</strong>
+      <strong>SMusic</strong>
     </RouterLink>
 
     <form class="search" role="search" @submit.prevent="submit">
